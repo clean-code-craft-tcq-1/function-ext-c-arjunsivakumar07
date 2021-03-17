@@ -1,98 +1,90 @@
 #include <stdio.h>
 #include <assert.h>
-#include<stdbool.h>
 #include "checker.h"
 
-void DisplaybatteryStatus(float attribute_value, int IdxMessage)
+void DisplaybatteryStatus(struct attribute battery_attribute, int IdxMessage)
 {
-    if (Sel_Language == ENGLISH)
+    if (Language == ENGLISH)
     {
-        printf("%f %s\n",attribute_value, BatteryStatus_English[IdxMessage]);
+        printf("%s %s\n", battery_attribute.attribute_name, BatteryStatus_English[IdxMessage]);
     }
     else{
-        printf("%f %s\n",attribute_value,BatteryStatus_German[IdxMessage]);
+        printf("%s %s\n", battery_attribute.attribute_name, BatteryStatus_German[IdxMessage]);
     }
 }
 
-int LowerThresholdChecker(float attribute_value, float lowerthreshold)
+int LowerThresholdChecker(float attribute_value,struct attribute battery_attribute)
 {
-  bool isValid = attribute_value < lowerthreshold;
-  if(isValid)
-  {
-    DisplaybatteryStatus(attribute_value,0); 
-    return 0; 
-  }
-    
-  else return 1;
+  if(attribute_value < battery_attribute.attribute_minvalue)
+    {
+        DisplaybatteryStatus(battery_attribute,0);
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
-int Check_LowAttributeWarning(float attribute_value,float lowerthreshold_warning, float lowerthreshold)
+int Check_LowAttributeWarning(float attribute_value,struct attribute battery_attribute)
 {
-   if((attribute_value<=lowerthreshold_warning) && (attribute_value > lowerthreshold))
+    if((attribute_value <= battery_attribute.attribute_LowWarning) && (attribute_value > battery_attribute.attribute_minvalue))
    {
-       DisplaybatteryStatus(attribute_value,2);
-       return 0;
+       DisplaybatteryStatus(battery_attribute,2);
+       return 1;
    }
    else
    {
-       return 1;
-   }
-}
-
-
-int UpperThresholdChecker(float attribute_value, float upperthreshold)
-{
-  bool isValid = attribute_value > upperthreshold;
-  if(isValid)
-  {
-    DisplaybatteryStatus(attribute_value,1);
-    return 0;
-  }
-  else return 1;
-}
-
-int Check_HighAttributeWarning(float attribute_value,float upperthreshold_warning,float upperthreshold)
-{
-   if((attribute_value >= upperthreshold_warning)&& (attribute_value < upperthreshold))
-   {
-        DisplaybatteryStatus(attribute_value,3);
        return 0;
    }
-   else
-   {
-       return 1;
-   }
 }
+
+
+int UpperThresholdChecker(float attribute_value, struct attribute battery_attribute)
+{
+  if(attribute_value > battery_attribute.attribute_maxvalue)
+    {
+        DisplaybatteryStatus(battery_attribute,1);
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+int Check_HighAttributeWarning(float attribute_value,struct attribute battery_attribute)
+{
+    if((attribute_value >= battery_attribute.attribute_HighWarning)&& (attribute_value < battery_attribute.attribute_maxvalue))
+    {
+       DisplaybatteryStatus(battery_attribute,3);
+       return 1;
+    }
+   else
+    {
+       return 0;
+    }
+}
+
 int batteryIsOk(float temperature, float soc, float chargeRate) {
   
-  int TemperatureLowerRange,TemperatureHigherRange,TemperatureStatus,SOCLowerRange,SOCHigherRange,SOCStatus,ChargeRateStatus,ValidityofBattery,TemperatureLowAttributeBreach,TemperatureHighAttributeBreach,SOCLowAttributeBreach,SOCHighAttributeBreach,ChargeRateLowerRange,ChargeRateHigherRange,CRLowAttributeBreach,CRHighAttributeBreach;
+  int TemperatureStatus,SOCStatus,ChargeRateStatus = 0;
 
-  TemperatureLowerRange  = LowerThresholdChecker(temperature,MINTEMP);
-  TemperatureHigherRange = UpperThresholdChecker(temperature,MAXTEMP) ;
-  TemperatureLowAttributeBreach = Check_LowAttributeWarning(temperature,TEMP_LOWER_WARNING,MINTEMP);
-  TemperatureHighAttributeBreach = Check_HighAttributeWarning(temperature,TEMP_UPPER_WARNING, MAXTEMP);
-  TemperatureStatus      = TemperatureLowerRange&TemperatureHigherRange&TemperatureLowAttributeBreach&TemperatureHighAttributeBreach;
+    TemperatureStatus =
+    LowerThresholdChecker(temperature,battery_temperature) + UpperThresholdChecker(temperature,battery_temperature)+ Check_LowAttributeWarning(temperature,battery_temperature) + Check_HighAttributeWarning(temperature,battery_temperature);
+    
+    SOCStatus =
+    LowerThresholdChecker(soc,battery_soc) + UpperThresholdChecker(soc,battery_soc)+Check_LowAttributeWarning(soc,battery_soc) + Check_HighAttributeWarning(soc,battery_soc);
+    
+    ChargeRateStatus =
+    LowerThresholdChecker(chargeRate,battery_chargeRate)+UpperThresholdChecker(chargeRate,battery_chargeRate)+ Check_LowAttributeWarning(chargeRate,battery_chargeRate)+Check_HighAttributeWarning(chargeRate,battery_chargeRate);
   
-  
-  
-  SOCLowerRange          = LowerThresholdChecker(soc,MINSOC) ;
-  SOCHigherRange         = UpperThresholdChecker(soc,MAXSOC); 
-  SOCLowAttributeBreach  = Check_LowAttributeWarning(soc,SOC_LOWER_WARNING,MINSOC);
-  SOCHighAttributeBreach = Check_HighAttributeWarning(soc,SOC_UPPER_WARNING, MAXSOC);
-  SOCStatus              = SOCLowerRange&SOCHigherRange&SOCLowAttributeBreach&SOCHighAttributeBreach;
-  
-  ChargeRateLowerRange   = LowerThresholdChecker(chargeRate,CRMIN);
-  ChargeRateHigherRange  = UpperThresholdChecker(chargeRate,CHARGERATETHRESHOLD_MAX);
-  CRLowAttributeBreach   = Check_LowAttributeWarning(chargeRate,CR_LOWER_WARNING,CRMIN);
-  CRHighAttributeBreach  = Check_HighAttributeWarning(chargeRate,CR_UPPER_WARNING, CHARGERATETHRESHOLD_MAX);
-  ChargeRateStatus       = ChargeRateLowerRange&ChargeRateHigherRange&CRLowAttributeBreach&CRHighAttributeBreach;
-  
-  ValidityofBattery = (TemperatureStatus)&(SOCStatus)&ChargeRateStatus;
-  
-  if(ValidityofBattery)
-    printf(" Battery is ok\n");
-  
- return ValidityofBattery;
+    if((TemperatureStatus + SOCStatus + ChargeRateStatus)==0)
+    {
+       DisplaybatteryStatus(battery_attribute,4);
+    }
+    
+    return!(TemperatureStatus + SOCStatus + ChargeRateStatus);
   
 }
 
