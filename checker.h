@@ -6,20 +6,21 @@
 
 #define ENGLISH 1
 #define GERMAN  2
-int Sel_Language = ENGLISH;
+int Language = ENGLISH;
 
-#define MAXTEMP 45.0F
-#define MINTEMP 0.0F
-#define MAXSOC 80.0F
-#define MINSOC 20.0F
-#define CHARGERATETHRESHOLD_MAX 0.8F
-#define CRMIN 0.0F
-#define TEMP_UPPER_WARNING 42.75F
-#define TEMP_LOWER_WARNING 2.25F
-#define SOC_UPPER_WARNING 76.0F
-#define SOC_LOWER_WARNING 24.0F
-#define CR_UPPER_WARNING 0.76F
-#define CR_LOWER_WARNING 0.04F
+struct attribute
+{
+    char attribute_name[20];
+    float attribute_maxvalue;
+    float attribute_minvalue;
+    float attribute_HighWarning;
+    float attribute_LowWarning;
+   
+}battery_attribute;
+
+struct attribute battery_temperature ={"temperature",45,0,42.75,2.25};
+struct attribute battery_soc = {"soc",80,20,76,24};
+struct attribute battery_chargeRate = {"chargeRate",0.8,0,0.76,0.04};
 
 const char *BatteryStatus_English[] =
 {
@@ -39,12 +40,12 @@ const char *BatteryStatus_German[] =
     "Batterie ist in Ordnung"
 };
 
-void DisplaybatteryStatus(float attribute_value, int IdxMessage);
-int Check_Attributelow(float attribute_value, float lowerthreshold);
-int Check_AttributeHigh(float attribute_value, float upperthreshold);
-int batteryIsOk(float attribute_value, float lowerthreshold, float higherthreshold);
-int Check_LowAttributeWarning(float attribute_value,float lowerthreshold_warning, float lowerthreshold);
-int Check_HighAttributeWarning(float attribute_value, float upperthreshold_warning, float upperthreshold);
+void DisplaybatteryStatus(struct attribute battery_attribute, int IdxMessage);
+int Check_Attributelow(float attribute_value, struct attribute battery_attribute);
+int Check_AttributeHigh(float attribute_value, struct attribute battery_attribute);
+int batteryIsOk(float temperature, float soc, float chargeRate);
+int Check_LowAttributeWarning(float attribute_value,struct attribute battery_attribute);
+int Check_HighAttributeWarning(float attribute_value, struct attribute battery_attribute);
 
 
 #endif
